@@ -8,7 +8,7 @@ Certainly! Here's your cleaned-up, emoji-free polished `README.md` writeup with 
 
 ## Binary Inspection
 
-We begin by analyzing the binary and unpacking it for further reversing and exploitation.
+We begin by analyzing the binary and for further reversing and exploitation.
 
 ### Step 1: Checking binary format
 
@@ -18,7 +18,7 @@ $ file main
 
 The binary is a 64-bit statically linked PIE executable packed with UPX.
 
-![file output](gif/ChatSystemBreach.gif)
+![Alt text](img/1.png)
 
 ---
 
@@ -28,15 +28,9 @@ The binary is a 64-bit statically linked PIE executable packed with UPX.
 $ pwn checksec main
 ```
 
-We confirm the following properties:
+The binary appears to be Packed with UPX.
 
-- No RELRO
-- No stack canary
-- NX enabled
-- PIE enabled
-- Packed with UPX
-
-![checksec packed](img/2.png)
+![Alt text](img/2.png)
 
 ---
 
@@ -46,9 +40,9 @@ We confirm the following properties:
 $ upx -d main
 ```
 
-We unpack the binary to make it analyzable by reversing tools.
+We unpack the binary to make it analyzable by UPX tool.
 
-![upx unpack](img/3.png)
+![Alt text](img/3.png)
 
 ---
 
@@ -58,13 +52,9 @@ We unpack the binary to make it analyzable by reversing tools.
 $ file main
 ```
 
-After unpacking, it's now:
+Post-unpacking, the binary is stripped of symbol information.
 
-- Dynamically linked
-- Still PIE enabled
-- Stripped (symbols removed)
-
-![file unpacked](img/4.png)
+![Alt text](img/4.png)
 
 ---
 
@@ -74,14 +64,9 @@ After unpacking, it's now:
 $ pwn checksec main
 ```
 
-Now the binary has:
+The `checksec` output for `main` shows: 64-bit AMD architecture, Partial RELRO, no stack canary, NX enabled, and PIE enabled.
 
-- Partial RELRO
-- No stack canary
-- NX enabled
-- PIE enabled
-
-![checksec unpacked](img/5.png)
+![Alt text](img/5.png)
 
 ---
 
@@ -104,7 +89,7 @@ This binary implements a chat system vulnerable to a classic **tcache-based use-
 
 ## Exploit Strategy
 
-1. **Create a chat**
+1. **Create a chat**  
    Allocates:
 
    - 0x208-byte struct chunk
@@ -227,13 +212,13 @@ This outputs the contents of the `./log` file — presumably the **flag**.
 
 ## Image Gallery
 
-| Step | Description                         | Image                           |
-| ---- | ----------------------------------- | ------------------------------- |
-| 1    | Check binary type with `file`       | ![file output](img/1.png)       |
-| 2    | Checksec (packed) shows protections | ![checksec packed](img/2.png)   |
-| 3    | UPX unpacking in action             | ![upx unpack](img/3.png)        |
-| 4    | Confirm unpacked format with `file` | ![file unpacked](img/4.png)     |
-| 5    | Re-run `checksec` after unpacking   | ![checksec unpacked](img/5.png) |
+| Step | Description                         | Image                                                 |
+| ---- | ----------------------------------- | ----------------------------------------------------- |
+| 1    | Check binary type with `file`       | ![file output](https://chatgpt.com/c/img/1.png)       |
+| 2    | Checksec (packed) shows protections | ![checksec packed](https://chatgpt.com/c/img/2.png)   |
+| 3    | UPX unpacking in action             | ![upx unpack](https://chatgpt.com/c/img/3.png)        |
+| 4    | Confirm unpacked format with `file` | ![file unpacked](https://chatgpt.com/c/img/4.png)     |
+| 5    | Re-run `checksec` after unpacking   | ![checksec unpacked](https://chatgpt.com/c/img/5.png) |
 
 ---
 
