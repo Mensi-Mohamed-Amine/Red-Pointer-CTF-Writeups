@@ -1,8 +1,4 @@
-Certainly! Here's your cleaned-up, emoji-free polished `README.md` writeup with image placeholders and clear descriptions, in a classic CTF pwn style:
-
----
-
-# SecureChat - Use-After-Free Exploit Writeup
+# Chat System Breach - Writeup
 
 ---
 
