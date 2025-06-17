@@ -4,7 +4,7 @@
 
 ## Binary Inspection
 
-We begin by analyzing the binary and for further reversing and exploitation.
+We begin by analyzing the binary for further reversing and exploitation.
 
 ### Step 1: Checking binary format
 
