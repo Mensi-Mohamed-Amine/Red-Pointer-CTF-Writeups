@@ -229,36 +229,4 @@ system("./log");
 
 This outputs the contents of the `./log` file — presumably the **flag**.
 
----
-
-## Additional Notes
-
-- The key to exploitation is **tcache freelist reuse** via **use-after-free**.
-- Cancelling the chat deletion keeps the struct valid, enabling us to overwrite `s1`.
-- A solid understanding of **heap behavior** and **tcache internals** is essential here.
-
----
-
-## Image Gallery
-
-| Step | Description                         | Image                  |
-| ---- | ----------------------------------- | ---------------------- |
-| 1    | Check binary type with `file`       | ![Alt text](img/1.png) |
-| 2    | Checksec (packed) shows protections | ![Alt text](img/2.png) |
-| 3    | UPX unpacking in action             | ![Alt text](img/3.png) |
-| 4    | Confirm unpacked format with `file` | ![Alt text](img/4.png) |
-| 5    | Re-run `checksec` after unpacking   | ![Alt text](img/5.png) |
-
----
-
-Let me know if you want:
-
-- Heap/tcache diagrams
-- Animated GIF of the exploit running
-- Printable PDF version
-
-Happy pwning!
-
----
-
-If you want, I can help you generate that GIF or any other media for your README!
+## ![Alt text](img/7.png)
