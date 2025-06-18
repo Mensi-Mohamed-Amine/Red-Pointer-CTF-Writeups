@@ -54,6 +54,8 @@ snprintf(s, 0x200uLL, "Confirm printing: %s from %s", a1, a2);
 printf(s);
 ```
 
+![Alt text](img/3.png)
+
 - User-controlled input is passed directly into `printf()` without a format string.
 - This introduces a **format string vulnerability** that can leak:
 
@@ -65,6 +67,8 @@ printf(s);
 ```c
 gets(v3);
 ```
+
+![Alt text](img/4.png)
 
 - The buffer `v3` is 264 bytes on the stack.
 - Since `gets()` does **not perform bounds checking**, this results in a **classic stack-based buffer overflow**.
