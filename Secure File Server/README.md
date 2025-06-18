@@ -79,33 +79,29 @@ Together, these two bugs form a powerful exploitation chain:
 
 ## How to Solve
 
-The binary likely contains a buffer overflow vulnerability due to the lack of a stack canary. PIE is enabled, so leaking addresses is necessary to calculate the base. With NX enabled, a ROP chain is a probable attack vector. The available symbols and local loading (`RUNPATH = '.'`) may also be leveraged for exploitation.
+1. Use `download_file()` to leak a libc address (e.g., via `%p`, `%s` format string specifiers).
+2. Calculate the base address of libc using known offsets.
+3. Use `edit_file()` to trigger a stack-based buffer overflow.
+4. Overwrite the return address with a ROP chain that calls `system("/bin/sh")`.
 
 ---
 
 ## Vulnerability Summary
 
-- No stack canary → stack overflow possible.
-- PIE → need to leak a code address for base calculation.
-- NX enabled → shellcode injection blocked, ROP required.
-- Full RELRO → GOT overwrite is not an option.
-- Not stripped → functions are labeled, aiding reverse engineering.
+- **Format String** in `download_file()` → leak libc or PIE addresses.
+- **Buffer Overflow** in `edit_file()` → hijack control flow.
+- **No stack canary** → reliable overflow.
+- **PIE + NX + Full RELRO** → mitigations in place, but all bypassable with this bug combo.
+- **libc.so.6 provided** → exact offsets known.
 
 ---
 
 ## Exploit Strategy
 
-1. **Leak a PIE address**
-   Find a format string or info leak to determine binary base.
-
-2. **Identify overflow point**
-   Locate buffer overflow using fuzzing or reversing.
-
-3. **Construct ROP chain**
-   Use ROPgadget or similar to craft payload and call `system("/bin/sh")` or similar.
-
-4. **Trigger overflow**
-   Send crafted payload to gain shell or reveal flag.
+1. Upload a file with controlled content.
+2. Trigger the format string vuln via `download_file()` to leak libc address.
+3. Calculate libc base.
+4. Overflow the stack in `edit_file()` and redirect execution to `system("/bin/sh")` using ROP.
 
 ---
 
