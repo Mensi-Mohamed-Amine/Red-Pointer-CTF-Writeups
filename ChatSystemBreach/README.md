@@ -12,7 +12,7 @@ We begin by analyzing the binary for further reversing and exploitation.
 $ file main
 ```
 
-The binary is a 64-bit statically linked PIE executable packed with UPX.
+The binary is a 64-bit statically linked PIE executable.
 
 ![Alt text](img/1.png)
 
@@ -36,7 +36,7 @@ The binary appears to be Packed with UPX.
 $ upx -d main
 ```
 
-We unpack the binary to make it analyzable by UPX tool.
+We unpack the binary with UPX tool to make it analyzable .
 
 ![Alt text](img/3.png)
 
