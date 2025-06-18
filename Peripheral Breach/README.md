@@ -37,7 +37,7 @@ The binary is protected with:
 - Full RELRO
 - NX enabled
 - PIE enabled
-- **No stack canary**
+- Stack canary
 
 ![Alt text](img/2.png)
 
