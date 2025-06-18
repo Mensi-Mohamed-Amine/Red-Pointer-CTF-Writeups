@@ -45,63 +45,67 @@ The binary is protected with:
 
 ## Static Analysis (IDA Pro)
 
-Reversing the binary in IDA Pro reveals two key vulnerabilities that can be chained for exploitation:
+Reversing the binary with IDA Pro reveals two key vulnerabilities in the functions `print_job()` and `schedule_job()` that can be chained for a successful exploit.
 
-### 1. `download_file()` – Format String Vulnerability
-
-```c
-printf((const char *)(file_list[v1] + 32LL));
-```
-
-![Alt text](img/3.png)
-
-- The file content is passed **directly** to `printf()` without a format string, which introduces a **format string vulnerability**.
-- This can be used to **leak memory**, such as **libc addresses** or **PIE base**, which bypasses ASLR and PIE protection.
-
-### 2. `edit_file()` – Stack-Based Buffer Overflow
+### 1. `print_job()` – Format String Vulnerability
 
 ```c
-safe_read(&v1, 256LL);
+snprintf(s, 0x200uLL, "Confirm printing: %s from %s", a1, a2);
+printf(s);
 ```
 
-![Alt text](img/3.png)
+- User-controlled input is passed directly into `printf()` without a format string.
+- This introduces a **format string vulnerability** that can leak:
 
-- The buffer `v1` is a 4-byte stack variable, but `safe_read()` reads up to **256 bytes**, causing a **classic stack overflow**.
-- Since there's **no stack canary**, this allows full **control over the return address**.
+  - The **stack canary**, required to bypass stack protection.
+  - The **PIE base address**, necessary to defeat ASLR and locate internal functions or gadgets.
 
-Together, these two bugs form a powerful exploitation chain:
+### 2. `schedule_job()` – Buffer Overflow via `gets()`
 
-- Use `download_file()` to **leak libc and PIE addresses** via the format string bug.
-- Then use `edit_file()` to **overwrite the return address** with a ROP chain or jump to a one_gadget in libc.
-- The presence of `libc.so.6` (provided in the challenge) makes it possible to calculate offsets and call `system("/bin/sh")`.
+```c
+gets(v3);
+```
+
+- The buffer `v3` is 264 bytes on the stack.
+- Since `gets()` does **not perform bounds checking**, this results in a **classic stack-based buffer overflow**.
+- However, since the binary uses a **stack canary**, the canary must first be leaked (via `print_job()`) to exploit this safely.
+- After bypassing the canary, the return address can be overwritten to hijack control flow.
 
 ---
 
 ## How to Solve
 
-1. Use `download_file()` to leak a libc address (e.g., via `%p`, `%s` format string specifiers).
-2. Calculate the base address of libc using known offsets.
-3. Use `edit_file()` to trigger a stack-based buffer overflow.
-4. Overwrite the return address with a ROP chain that calls `system("/bin/sh")`.
+1. Trigger the format string vulnerability in `print_job()` to **leak the stack canary and PIE base** using format specifiers (e.g. `%p`).
+2. Compute the correct **base address of the binary** and locate useful functions like `maintain()`.
+3. Craft a payload that **overflows the buffer** in `schedule_job()` while preserving the leaked canary.
+4. Overwrite the return address to jump to the `maintain()` function, which calls `system("/bin/sh")`.
 
 ---
 
 ## Vulnerability Summary
 
-- **Format String** in `download_file()` → leak libc or PIE addresses.
-- **Buffer Overflow** in `edit_file()` → hijack control flow.
-- **No stack canary** → reliable overflow.
-- **PIE + NX + Full RELRO** → mitigations in place, but all bypassable with this bug combo.
-- **libc.so.6 provided** → exact offsets known.
+- **Format String** in `print_job()` → Leak **stack canary** and **PIE base**.
+- **Buffer Overflow** in `schedule_job()` → Overwrite return address after bypassing canary.
+- **Canary + PIE + NX + Full RELRO** → Strong protections, but all bypassable due to format string leak.
+- **Goal**: Redirect execution to `maintain()` → `system("/bin/sh")`.
 
 ---
 
 ## Exploit Strategy
 
-1. Upload a file with controlled content.
-2. Trigger the format string vuln via `download_file()` to leak libc address.
-3. Calculate libc base.
-4. Overflow the stack in `edit_file()` and redirect execution to `system("/bin/sh")` using ROP.
+1. Input a **format string** (e.g., `%39$p %107$p`) into the filename and URL prompts to leak both:
+
+   - Stack canary
+   - PIE address of `main()`
+
+2. Compute the PIE base and calculate the absolute address of the `maintain()` function.
+3. Prepare a payload for the `gets()`-based overflow:
+
+   - Padding up to the canary (264 bytes)
+   - The **correct leaked canary**
+   - Return address pointing to `maintain()`
+
+4. Gain a shell via `system("/bin/sh")`.
 
 ---
 
