@@ -43,6 +43,8 @@ The binary is protected with:
 
 ---
 
+## Static Analysis (IDA Pro)
+
 Reversing the binary in IDA Pro reveals two key vulnerabilities that can be chained for exploitation:
 
 ### 1. `download_file()` – Format String Vulnerability
