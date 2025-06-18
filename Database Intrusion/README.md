@@ -43,6 +43,24 @@ Security summary:
 
 ---
 
+## Static Analysis
+
+```c
+int vuln() {
+  _BYTE buf[64];
+  printf(">> Secure channel established at %p:%p.\n", buf, vuln);
+  read(0, buf, 0x190);
+  check_forbidden(buf);
+  return puts("Hint: You don't need ga\ndgets for rax!");
+}
+```
+
+- `buf` and `vuln` addresses are leaked.
+- `check_forbidden()` runs _after_ the overflow, so shellcode must not contain blocked substrings.
+- Buffer is on the **stack**, so we need to **mprotect** it before execution.
+
+---
+
 ## Vulnerability Summary
 
 The function `vuln()` contains a **buffer overflow** on a 64-byte buffer due to an unchecked `read()` call that reads **0x190 bytes**:
@@ -70,24 +88,6 @@ Due to the NX bit and forbidden string filter, we use **Sigreturn-Oriented Progr
 3. **Craft a SROP frame** that sets up a `mprotect` syscall to make stack executable.
 4. **Inject shellcode** directly into the buffer.
 5. **Jump to shellcode** after stack permissions are changed.
-
----
-
-## Static Analysis
-
-```c
-int vuln() {
-  _BYTE buf[64];
-  printf(">> Secure channel established at %p:%p.\n", buf, vuln);
-  read(0, buf, 0x190);
-  check_forbidden(buf);
-  return puts("Hint: You don't need ga\ndgets for rax!");
-}
-```
-
-- `buf` and `vuln` addresses are leaked.
-- `check_forbidden()` runs _after_ the overflow, so shellcode must not contain blocked substrings.
-- Buffer is on the **stack**, so we need to **mprotect** it before execution.
 
 ---
 
