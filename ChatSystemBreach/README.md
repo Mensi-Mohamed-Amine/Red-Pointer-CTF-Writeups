@@ -230,3 +230,9 @@ system("./log");
 This outputs the contents of the `./log` file — presumably the **flag**.
 
 ## ![Alt text](img/7.png)
+
+## FLAG
+
+```
+RedPointer{9#zF@4T$3n!VmC82&xLpQ1r*X6~dEj}
+```
