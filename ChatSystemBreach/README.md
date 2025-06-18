@@ -2,6 +2,14 @@
 
 ---
 
+## Exploit Demo
+
+## This demo illustrates the step-by-step exploit process:
+
+![Alt text](gif/ChatSystemBreach.gif)
+
+---
+
 ## Binary Inspection
 
 We begin by analyzing the binary for further reversing and exploitation.
