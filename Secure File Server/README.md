@@ -75,8 +75,6 @@ Together, these two bugs form a powerful exploitation chain:
 
 ---
 
----
-
 ## How to Solve
 
 The binary likely contains a buffer overflow vulnerability due to the lack of a stack canary. PIE is enabled, so leaking addresses is necessary to calculate the base. With NX enabled, a ROP chain is a probable attack vector. The available symbols and local loading (`RUNPATH = '.'`) may also be leveraged for exploitation.
