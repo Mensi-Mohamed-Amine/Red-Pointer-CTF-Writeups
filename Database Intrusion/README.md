@@ -43,7 +43,7 @@ Security summary:
 
 ---
 
-## Static Analysis
+## Static Analysis (IDA Pro)
 
 ```c
 int vuln() {
