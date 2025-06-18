@@ -78,6 +78,10 @@ The `checksec` output for `main` shows: 64-bit AMD architecture, Partial RELRO, 
 
 The first thing that stood out was that both the chat name and password buffers are allocated with the same size (`0x40`). This immediately suggested a potential tcache reuse: if we free the chat name and then allocate a password, the new `s1` pointer will point to the same memory previously used by the chat name, enabling a use-after-free exploit.
 
+![Alt text](img/8.png)
+
+![Alt text](img/9.png)
+
 ## How to solve
 
 This binary implements a chat system vulnerable to a classic **tcache-based use-after-free (UAF)**. Exploiting this UAF allows us to write arbitrary data into the "password" buffer (`s1` chunk), which is critical for bypassing a password check in `verify_password()`. Successfully passing the check triggers a call to `system("./log")` revealing the flag.
