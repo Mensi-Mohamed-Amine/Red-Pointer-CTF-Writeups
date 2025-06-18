@@ -55,6 +55,8 @@ int vuln() {
 }
 ```
 
+![Alt text](img/3.png)
+
 - `buf` and `vuln` addresses are leaked.
 - `check_forbidden()` runs _after_ the overflow, so shellcode must not contain blocked substrings.
 - Buffer is on the **stack**, so we need to **mprotect** it before execution.
@@ -69,6 +71,8 @@ The function `vuln()` contains a **buffer overflow** on a 64-byte buffer due to 
 char buf[64];
 read(0, buf, 0x190);  // Vulnerable
 ```
+
+![Alt text](img/4.png)
 
 Furthermore, a `check_forbidden()` function filters out strings such as `/bin/sh`, `ls`, `bash`, and more — preventing traditional `system("/bin/sh")` shellcode or command injection.
 
