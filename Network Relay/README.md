@@ -1,14 +1,10 @@
-Here is your customized version of the writeup for the **Network Relay** challenge, tailored to highlight the `user_input()` buffer overflow and the use of **ret2dlresolve** to call `system("/bin/sh")`, due to the lack of a return function and no direct libc access.
-
----
-
 # Network Relay - Writeup
 
 ---
 
 ## Exploit Demo
 
-This demo illustrates the full exploit process, culminating in shell access via `ret2dlresolve`:
+This demo illustrates the exploit process, culminating in shell access via `ret2dlresolve`:
 
 ![Alt text](gif/NetworkRelay.gif)
 
