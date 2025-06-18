@@ -185,7 +185,3 @@ After successful execution, a shell is spawned **without using any forbidden str
 ```
 RedPointer{X!r7v9-Kaleido.phs}
 ```
-
----
-
-Let me know if you'd like a version with visuals (`img/`) or the Markdown exported as a `.md` file.
