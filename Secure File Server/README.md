@@ -228,7 +228,13 @@ io.interactive()
 
 ## Result
 
-After successfully exploiting the overflow and executing the ROP chain, the binary executes our controlled payload, potentially revealing the flag or giving shell access.
+After successful exploitation, the program executes:
+
+```c
+system("/bin/sh");
+```
+
+This gives us a shell to reveal the flag.
 
 ---
 
@@ -237,9 +243,5 @@ After successfully exploiting the overflow and executing the ROP chain, the bina
 The flag will be displayed in the output after successful execution.
 
 ```
-RedPointer{example_flag_goes_here}
+RedPointer{myp@ss!}
 ```
-
----
-
-Let me know if you want to plug in real screenshots or want help generating the actual exploit!
