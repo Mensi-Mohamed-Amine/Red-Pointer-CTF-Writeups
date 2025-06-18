@@ -48,7 +48,7 @@ We unpack the binary with UPX tool to make it analyzable .
 $ file main
 ```
 
-Post-unpacking, the binary is stripped of symbol information.
+Post-unpacking, the binary is 64-bit stripped of symbol information.
 
 ![Alt text](img/4.png)
 
