@@ -4,7 +4,7 @@
 
 ## Exploit Demo
 
-## This demo illustrates the step-by-step exploit process:
+This demo illustrates the step-by-step exploit process:
 
 ![Alt text](gif/ChatSystemBreach.gif)
 
