@@ -233,6 +233,8 @@ This outputs the contents of the `./log` file — presumably the **flag**.
 
 ## FLAG
 
+After verification, we retrieve the flag from the program’s output.
+
 ```
 RedPointer{9#zF@4T$3n!VmC82&xLpQ1r*X6~dEj}
 ```
