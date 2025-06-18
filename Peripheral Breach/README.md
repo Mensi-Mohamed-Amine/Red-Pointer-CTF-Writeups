@@ -212,5 +212,5 @@ This gives us a shell to reveal the flag.
 The flag will be displayed in the output after successful execution.
 
 ```
-RedPointer{myp@ss!}
+RedPointer{PhantomNetRelay0x10!}
 ```
