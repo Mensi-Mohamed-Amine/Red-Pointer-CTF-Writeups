@@ -164,6 +164,9 @@ io.interactive()
 
 After executing the exploit, we successfully resolve and call `system("/bin/sh")`.
 
+![Alt text](img/4.png)
+![Alt text](img/5.png)
+
 ---
 
 ## FLAG
