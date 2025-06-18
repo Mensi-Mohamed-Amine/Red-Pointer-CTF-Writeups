@@ -208,13 +208,13 @@ This outputs the contents of the `./log` file — presumably the **flag**.
 
 ## Image Gallery
 
-| Step | Description                         | Image                                                 |
-| ---- | ----------------------------------- | ----------------------------------------------------- |
-| 1    | Check binary type with `file`       | ![file output](https://chatgpt.com/c/img/1.png)       |
-| 2    | Checksec (packed) shows protections | ![checksec packed](https://chatgpt.com/c/img/2.png)   |
-| 3    | UPX unpacking in action             | ![upx unpack](https://chatgpt.com/c/img/3.png)        |
-| 4    | Confirm unpacked format with `file` | ![file unpacked](https://chatgpt.com/c/img/4.png)     |
-| 5    | Re-run `checksec` after unpacking   | ![checksec unpacked](https://chatgpt.com/c/img/5.png) |
+| Step | Description                         | Image                  |
+| ---- | ----------------------------------- | ---------------------- |
+| 1    | Check binary type with `file`       | ![Alt text](img/1.png) |
+| 2    | Checksec (packed) shows protections | ![Alt text](img/2.png) |
+| 3    | UPX unpacking in action             | ![Alt text](img/3.png) |
+| 4    | Confirm unpacked format with `file` | ![Alt text](img/4.png) |
+| 5    | Re-run `checksec` after unpacking   | ![Alt text](img/5.png) |
 
 ---
 
