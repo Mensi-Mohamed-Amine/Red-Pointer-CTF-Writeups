@@ -74,7 +74,7 @@ The `checksec` output for `main` shows: 64-bit AMD architecture, Partial RELRO, 
 
 ---
 
-## Challenge Overview
+## How to solve
 
 This binary implements a chat system vulnerable to a classic **tcache-based use-after-free (UAF)**. Exploiting this UAF allows us to write arbitrary data into the "password" buffer (`s1` chunk), which is critical for bypassing a password check in `verify_password()`. Successfully passing the check triggers a call to `system("./log")` revealing the flag.
 
@@ -118,32 +118,6 @@ This binary implements a chat system vulnerable to a classic **tcache-based use-
    - Input: `"53cr37_c0d3"`
    - Check: `strncmp(s1, "53cr37_c0d3", 11)`
    - Success: `system("./log")`
-
----
-
-## Code Walkthrough
-
-```c
-new_chat():
-  malloc(0x208) → struct
-  malloc(0x40)  → name_chunk
-  store pointer in struct->[1]
-
-delete_chat():
-  free(name_chunk)
-  prompt (Y/N)
-  if N → struct stays, name_chunk freed to tcache
-
-password_alloc():
-  s1 = malloc(0x40)  // reuses freed name_chunk
-
-rename_chat():
-  read input into struct->[1] (now s1)
-
-verify_password():
-  if (!strncmp(s1, "53cr37_c0d3", 11))
-    system("./log");
-```
 
 ---
 
