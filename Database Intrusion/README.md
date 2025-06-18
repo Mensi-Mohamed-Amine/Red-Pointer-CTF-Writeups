@@ -1,7 +1,3 @@
-Here's a customized version of your writeup tailored for the **"Database Intrusion"** challenge, where the key vulnerability is a buffer overflow in `vuln()`, and the exploitation involves using SROP to mark the stack executable and inject shellcode — all while bypassing the `check_forbidden()` filter.
-
----
-
 # Database Intrusion - Writeup
 
 ---
