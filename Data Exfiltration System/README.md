@@ -1,7 +1,3 @@
-Certainly. Here's the cleaned-up version of the **Data Exfiltration System** CTF writeup with all emojis removed:
-
----
-
 # Data Exfiltration System - Writeup
 
 ---
@@ -36,18 +32,18 @@ $ pwn checksec main
 
 ### Key Global Variables
 
-* `FILE *open_market_file` — the current file opened for appending.
-* `char *recently_closed[10]` — stores recently closed file names.
-* `int recent_count` — used as an index to cycle through the cache.
-* `char *open_market_name` — string of the open file's name.
+- `FILE *open_market_file` — the current file opened for appending.
+- `char *recently_closed[10]` — stores recently closed file names.
+- `int recent_count` — used as an index to cycle through the cache.
+- `char *open_market_name` — string of the open file's name.
 
 ### File I/O Logic
 
 The program allows:
 
-* Opening a file in the `markets/` directory, or directly if it was "recently closed".
-* Appending a file from `hacked/`, or directly if it's "recent".
-* Closing a file and storing its name in `recently_closed[]`.
+- Opening a file in the `markets/` directory, or directly if it was "recently closed".
+- Appending a file from `hacked/`, or directly if it's "recent".
+- Closing a file and storing its name in `recently_closed[]`.
 
 ### Cache Bypass
 
@@ -59,13 +55,13 @@ When a filename appears in `recently_closed`, the program skips all directory pr
 
 The program is vulnerable to a pointer poisoning logic flaw:
 
-* You can close a file under a fake name, and the program will store that name as “recent”.
-* The next time you open or append a file, it uses the raw string if it’s “recent”, skipping safety checks.
+- You can close a file under a fake name, and the program will store that name as “recent”.
+- The next time you open or append a file, it uses the raw string if it’s “recent”, skipping safety checks.
 
 This allows us to:
 
-* Read `notes.txt`
-* Write to `/dev/stdout`
+- Read `notes.txt`
+- Write to `/dev/stdout`
 
 ---
 
@@ -74,7 +70,9 @@ This allows us to:
 We poison the internal cache so that the append operation reads from `notes.txt` and writes to `/dev/stdout`, which is the program's output (our socket).
 
 ---
-## Exploit Script 
+
+## Exploit Script
+
 ```Python
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -224,9 +222,9 @@ Fast open via cache!
 
 The program will now:
 
-* Open `notes.txt` for reading
-* `fgets()` each line
-* `fputs()` them into `open_market_file`, which is `/dev/stdout`
+- Open `notes.txt` for reading
+- `fgets()` each line
+- `fputs()` them into `open_market_file`, which is `/dev/stdout`
 
 The contents of `notes.txt` are printed directly to your screen or socket.
 
@@ -234,9 +232,9 @@ The contents of `notes.txt` are printed directly to your screen or socket.
 
 ## Why This Works
 
-* The first cache entry (`notes.txt`) lets us bypass the `hacked/` directory restriction.
-* The second cache entry (`/dev/stdout`) redirects output to your terminal.
-* This all works within the intended menu flow, without triggering memory corruption defenses.
+- The first cache entry (`notes.txt`) lets us bypass the `hacked/` directory restriction.
+- The second cache entry (`/dev/stdout`) redirects output to your terminal.
+- This all works within the intended menu flow, without triggering memory corruption defenses.
 
 ---
 
@@ -266,9 +264,9 @@ RedPointer{r00tP@ssw0rd}
 
 ## Mitigation Suggestions
 
-* Sanitize paths even when they are from a cache.
-* Forbid filenames with `/`, absolute paths, or devices like `/dev/stdout`.
-* Normalize and validate all paths before use.
+- Sanitize paths even when they are from a cache.
+- Forbid filenames with `/`, absolute paths, or devices like `/dev/stdout`.
+- Normalize and validate all paths before use.
 
 ---
 
