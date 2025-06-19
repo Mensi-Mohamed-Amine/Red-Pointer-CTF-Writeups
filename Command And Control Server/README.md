@@ -16,19 +16,16 @@ The `Command And Control Server` binary simulates a mock C2 interface that accep
 
 ```bash
 $ file main
-main: ELF 64-bit LSB pie executable, x86-64, dynamically linked, not stripped
-
-$ checksec main
-[*] '/home/user/CommandAndControlServer/main'
-    Arch:     amd64-64-little
-    RELRO:    Full RELRO
-    Stack:    No canary found
-    NX:       NX enabled
-    PIE:      PIE enabled
-    Stripped: No
 ```
 
----
+![Alt text](img/1.png)
+
+```bash
+$ checksec main
+
+```
+
+## ![Alt text](img/2.png)
 
 ## Static Analysis
 
