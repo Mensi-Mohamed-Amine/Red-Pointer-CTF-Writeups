@@ -1,7 +1,3 @@
-Sure! Here's the **emoji-free** version of the customized writeup for the challenge **Command And Control Server**:
-
----
-
 # Command And Control Server - Writeup
 
 ---
@@ -25,7 +21,7 @@ $ checksec main
 
 ```
 
-## ![Alt text](img/2.png)
+![Alt text](img/2.png)
 
 ## Static Analysis
 
@@ -35,6 +31,8 @@ $ checksec main
 printf(">> Welcome Commander: ");
 printf(buf);  // Format string vulnerability
 ```
+
+![Alt text](img/3.png)
 
 - The `printf(buf)` line introduces a **format string vulnerability**.
 - The `read(0, buf, 0xC8)` provides a generous buffer size.
