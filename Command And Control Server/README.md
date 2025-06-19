@@ -23,7 +23,7 @@ $ checksec main
 
 ![Alt text](img/2.png)
 
-## Static Analysis
+## Static Analysis (IDA pro)
 
 ### Vulnerable Code
 
