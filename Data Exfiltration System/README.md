@@ -2,6 +2,14 @@
 
 ---
 
+## Exploit Demo
+
+This demo shows the full exploitation flow:
+
+![Alt text](gif/DataExfiltrationSystem.gif)
+
+---
+
 ## Overview
 
 In this CTF task, we exploit a logic flaw in a file-handling program to exfiltrate the contents of `notes.txt` by poisoning a file cache and redirecting writes to `/dev/stdout`. No memory corruption is needed just creative abuse of how filenames are cached and reused.
