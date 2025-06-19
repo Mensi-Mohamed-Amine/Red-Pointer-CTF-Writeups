@@ -4,7 +4,7 @@
 
 ## Exploit Demo
 
-This demo shows the full exploitation flow:
+This demo shows the exploitation flow:
 
 ![Alt text](gif/DataExfiltrationSystem.gif)
 
