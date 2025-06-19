@@ -2,6 +2,14 @@
 
 ---
 
+## Exploit Demo
+
+This demo shows the exploitation flow:
+
+![Alt text](gif/CommandAndControlServer.gif)
+
+---
+
 ## Challenge Summary
 
 The `Command And Control Server` binary simulates a mock C2 interface that accepts a "callsign" (username) and a subsequent payload. The program is vulnerable to a **format string vulnerability**, allowing for **arbitrary memory writes**. Leveraging this, we overwrite the username with `"/bin/sh"`, leak `puts@GOT`, calculate the libc base, and finally perform a **ret2libc** to spawn a shell.
@@ -27,6 +35,12 @@ $ checksec main
 
 ### Vulnerable Code
 
+Here is the updated **Vulnerable Code** section, now including analysis of both the **format string vulnerability** and the **buffer overflow**:
+
+---
+
+### Vulnerable Code
+
 ```c
 printf(">> Welcome Commander: ");
 printf(buf);  // Format string vulnerability
@@ -34,11 +48,18 @@ printf(buf);  // Format string vulnerability
 
 ![Alt text](img/3.png)
 
-- The `printf(buf)` line introduces a **format string vulnerability**.
-- The `read(0, buf, 0xC8)` provides a generous buffer size.
-- The buffer `buf[208]` is large enough for format string payloads.
-- The binary has **NX enabled**, so we can't inject and jump to shellcode.
-- However, it does not use a stack canary, and with **PIE enabled**, we must leak memory to compute addresses.
+```c
+read(0, v5, 0xC8uLL);  // Buffer overflow vulnerability
+```
+
+![Alt text](img/4.png)
+
+- The first vulnerability occurs at `printf(buf)`, where user input is printed without a format specifier. This leads to a **format string vulnerability**, allowing an attacker to **leak memory** and **perform arbitrary writes** using `%n`.
+- The buffer `buf[208]` receives input via `read(0, buf, 0xC8)`, giving ample space for format string payloads.
+- The second vulnerability lies in the use of `read(0, v5, 0xC8)` where `v5` is only an 80-byte buffer. Since `0xC8` is 200 bytes, this introduces a **classic stack-based buffer overflow**, allowing overwriting of saved registers and return addresses.
+- This overflow enables a **ROP chain**, which becomes crucial after leaking libc via the format string attack.
+- The binary has **NX (Non-Executable Stack)** enabled, preventing code injection, but **does not use a stack canary**, so stack smashing is possible.
+- Since **PIE (Position Independent Executable)** is enabled, we must first **leak an address** to calculate the base address of the binary before launching any reliable attack.
 
 ---
 
@@ -242,7 +263,3 @@ RedPointer{FhoijKey_Not_Encrypted_flag_afagsgijq}
 ```
 RedPointer{FhoijKey_Not_Encrypted_flag_afagsgijq}
 ```
-
----
-
-Let me know if you want to add a **Reverse Engineering section**, **GDB insights**, or visuals like **call flow diagrams or memory layout maps**.
