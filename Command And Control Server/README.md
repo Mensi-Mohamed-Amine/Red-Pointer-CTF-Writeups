@@ -35,12 +35,6 @@ $ checksec main
 
 ### Vulnerable Code
 
-Here is the updated **Vulnerable Code** section, now including analysis of both the **format string vulnerability** and the **buffer overflow**:
-
----
-
-### Vulnerable Code
-
 ```c
 printf(">> Welcome Commander: ");
 printf(buf);  // Format string vulnerability
