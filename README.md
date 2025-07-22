@@ -13,5 +13,5 @@ Each directory includes solutions and notes for the challenge I solved.
 | Database Intrusion         | Pwn      | SROP + Shellcode Injection     | [Database Intrusion](./Database%20Intrusion/README.md)                     |
 | Network Relay              | Pwn      | Ret2dlresolve                  | [Network Relay](./Network%20Relay/README.md)                               |
 | Peripheral Breach          | Pwn      | Ret2win + PIE leak             | [Peripheral Breach](./Peripheral%20Breach/README.md)                       |
-| Secure File Server         | Pwn      | ...                            | [Secure File Server](./Secur%20Fil%20Server/README.md)                     |
+| Secure File Server         | Pwn      | ...                            | [Secure File Server](./Secure%20Fil%20Server/README.md)                    |
 | ...                        | ...      | ...                            | ...                                                                        |
