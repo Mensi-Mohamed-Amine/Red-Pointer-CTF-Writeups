@@ -10,5 +10,5 @@ Each directory includes solutions and notes for the challenge I solved.
 | Chat System Breach         | Pwn      | Use-After-Free                 | [Chat System Breach](./Chat%20System%20Breach/README.md)                   |
 | Command And Control Server | Pwn      | Ret2Libc                       | [Command And Control Server](./Command%20And%20Control%20Server/README.md) |
 | Data Exfiltration System   | Pwn      | Cache Poisoning                | [Data Exfiltration System](./Data%20Exfiltration%20System/README.md)       |
-| Database Intrusion         | Pwn      | XOR Obfuscation + Fisher-Yates | [Database Intrusion](./Database%20Intrusion/README.md)                     |
+| Database Intrusion         | Pwn      | SROP + Shellcode Injection     | [Database Intrusion](./Database%20Intrusion/README.md)                     |
 | ...                        | ...      | ...                            | ...                                                                        |
